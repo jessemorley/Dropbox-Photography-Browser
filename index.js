@@ -32,10 +32,29 @@ app.get("/callback", async (req, res) => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
 
-    res.send(`Access token received: <pre>${JSON.stringify(tokenRes.data, null, 2)}</pre>`);
+    const accessToken = tokenRes.data.access_token;
+
+    // Use the token to list files in the root Dropbox folder
+    const listRes = await axios.post(
+      "https://api.dropboxapi.com/2/files/list_folder",
+      { path: "" }, // "" means root directory
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.send(`
+      <h1>Files in Dropbox Root:</h1>
+      <ul>
+        ${listRes.data.entries.map(entry => `<li>${entry.name}</li>`).join("")}
+      </ul>
+    `);
   } catch (err) {
     console.error(err.response?.data || err);
-    res.status(500).send("Token exchange failed");
+    res.status(500).send("Something went wrong: " + err.message);
   }
 });
 
